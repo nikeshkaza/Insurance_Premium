@@ -9,7 +9,7 @@ from pyspark.sql.functions import col
 from pyspark.sql import SparkSession
 from entity.artifact_entity import DataIngestionArtifact
 from entity.config_entity import DataValidationConfig
-from entity.schema import FinanceDataSchema
+from entity.schema import InsuranceDataSchema
 from exception import InsuranceException
 from logger import logger
 
@@ -21,18 +21,18 @@ Start spark session
 """
 spark_session=SparkSession.builder.appName('Insurace_Premium').getOrCreate()
 
-COMPLAINT_TABLE = "InsPrem"
+INSURANCE_TABLE = "InsPrem"
 ERROR_MESSAGE = "error_msg"
 MissingReport = namedtuple("MissingReport", ["total_row", "missing_row", "missing_percentage"])
 
 
-class DataValidation(FinanceDataSchema):
+class DataValidation(InsuranceDataSchema):
 
     def __init__(self,
                  data_validation_config: DataValidationConfig,
                  data_ingestion_artifact: DataIngestionArtifact,
-                 table_name: str = COMPLAINT_TABLE,
-                 schema=FinanceDataSchema()
+                 table_name: str = INSURANCE_TABLE,
+                 schema=InsuranceDataSchema()
                  ):
         try:
             super().__init__()
@@ -90,25 +90,6 @@ class DataValidation(FinanceDataSchema):
         except Exception as e:
             raise InsuranceException(e, sys)
 
-    def drop_unwanted_columns(self, dataframe: DataFrame) -> DataFrame:
-        try:
-            unwanted_columns: List = self.get_unwanted_and_high_missing_value_columns(dataframe=dataframe, )
-            logger.info(f"Dropping feature: {','.join(unwanted_columns)}")
-            unwanted_dataframe: DataFrame = dataframe.select(unwanted_columns)
-
-            unwanted_dataframe = unwanted_dataframe.withColumn(ERROR_MESSAGE, lit("Contains many missing values"))
-
-            rejected_dir = os.path.join(self.data_validation_config.rejected_data_dir, "missing_data")
-            os.makedirs(rejected_dir, exist_ok=True)
-            file_path = os.path.join(rejected_dir, self.data_validation_config.file_name)
-
-            logger.info(f"Writing dropped column into file: [{file_path}]")
-            unwanted_dataframe.write.mode("append").parquet(file_path)
-            dataframe: DataFrame = dataframe.drop(*unwanted_columns)
-            logger.info(f"Remaining number of columns: [{dataframe.columns}]")
-            return dataframe
-        except Exception as e:
-            raise InsuranceException(e, sys)
 
     @staticmethod
     def get_unique_values_of_each_column(dataframe: DataFrame) -> None:
@@ -167,12 +148,12 @@ class DataValidation(FinanceDataSchema):
 
     def initiate_data_validation(self) -> DataValidationArtifact:
         try:
-            logger.info(f"Initiating data preprocessing.")
+            logger.info(f"Initiating data validation")
             dataframe: DataFrame = self.read_data()
             # dataframe = self.drop_row_without_target_label(dataframe=dataframe)
 
-            logger.info(f"Dropping unwanted columns")
-            dataframe: DataFrame = self.drop_unwanted_columns(dataframe=dataframe)
+            self.get_missing_report(dataframe=dataframe)
+            #missing report in logs
 
             # validation to ensure that all require column available
             self.is_required_columns_exist(dataframe=dataframe)

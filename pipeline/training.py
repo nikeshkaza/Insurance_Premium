@@ -23,7 +23,7 @@ class TrainingPipeline:
 
     def start_data_validation(self, data_ingestion_artifact: DataIngestionArtifact) -> DataValidationArtifact:
         try:
-            data_validation_config = self.finance_config.get_data_validation_config()
+            data_validation_config = self.insurance_config.get_data_validation_config()
             data_validation = DataValidation(data_ingestion_artifact=data_ingestion_artifact,
                                              data_validation_config=data_validation_config)
 
