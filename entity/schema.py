@@ -41,11 +41,11 @@ class InsuranceDataSchema:
         return self.col_expenses
 
     @property
-    def one_hot_encoding_features(self) -> List[str]:
+    def categorical_features(self) -> List[str]:
         features = [
             self.col_sex,
-            self.col_bmi,
-            self.col_children,
+            self.col_smoker,
+            self.col_region,
         ]
         return features
 
@@ -55,32 +55,47 @@ class InsuranceDataSchema:
     def numerical_features(self) -> List[str]:
         features = [
             self.col_age,
-            self.col_smoker,
-            self.col_region,
+            self.col_bmi,
+            self.col_children,
         ]
         return features
 
-    
+    @property
+    def one_hot_encoding_features(self) -> List[str]:
+        features = [
+            self.col_sex,
+            self.col_smoker,
+            self.col_region,
+            
+        ]
+        return features
 
     @property
     def input_features(self) -> List[str]:
-        in_features = self.one_hot_encoding_features + self.numerical_features
+        in_features = self.categorical_features + self.numerical_features
         return in_features
 
     @property
     def required_columns(self) -> List[str]:
-        features = [self.target_column] + self.one_hot_encoding_features + self.numerical_features
+        features = [self.target_column] + self.categorical_features + self.numerical_features
         return features
 
-    
+    @property
+    def string_index_output(self) -> List[str]:
 
+        return [f"si_{col}" for col in self.categorical_features]
 
+    @property
+    def tf_one_hot_encoding_features(self) -> List[str]:
+        return [f"tf_{col}" for col in self.one_hot_encoding_features]
 
     
 
     @property
     def vector_assembler_output(self) -> str:
         return "va_input_features"
+
+    
 
     @property
     def scaled_vector_input_features(self) -> str:
