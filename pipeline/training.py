@@ -3,7 +3,8 @@ from exception import InsuranceException
 from component.training.data_ingestion import DataIngestion
 from component.training.data_validation import DataValidation
 from component.training.data_transformation import DataTransformation
-from entity.artifact_entity import DataIngestionArtifact,DataValidationArtifact,DataTransformationArtifact
+from component.training.model_trainer import ModelTrainer
+from entity.artifact_entity import DataIngestionArtifact,DataValidationArtifact,DataTransformationArtifact,ModelTrainerArtifact
 import sys
 
 
@@ -44,12 +45,23 @@ class TrainingPipeline:
             return data_transformation_artifact
         except Exception as e:
             raise InsuranceException(e, sys)
+    
+    def start_model_trainer(self, data_transformation_artifact: DataTransformationArtifact) -> ModelTrainerArtifact:
+        try:
+            model_trainer = ModelTrainer(data_transformation_artifact=data_transformation_artifact,
+                                         model_trainer_config=self.insurance_config.get_model_trainer_config()
+                                         )
+            model_trainer_artifact = model_trainer.initiate_model_training()
+            return model_trainer_artifact
+        except Exception as e:
+            raise InsuranceException(e, sys)
 
     def start(self):
         try:
             data_ingestion_artifact = self.start_data_ingestion()
             data_validation_artifact = self.start_data_validation(data_ingestion_artifact=data_ingestion_artifact)
             data_transfomation_artifact = self.start_data_transformation(data_validation_artifact=data_validation_artifact)
+            model_trainer=self.start_model_trainer(data_transformation_artifact=data_transfomation_artifact)
             
         except Exception as e:
             raise InsuranceException(e, sys)

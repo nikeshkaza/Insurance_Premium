@@ -1,9 +1,10 @@
 from time import strftime
-from entity.config_entity import DataIngestionConfig,TrainingPipelineConfig,DataValidationConfig,DataTransformationConfig
+from entity.config_entity import DataIngestionConfig,TrainingPipelineConfig,DataValidationConfig,DataTransformationConfig,ModelTrainerConfig
 from constant.training_pipeline_config import *
 from constant.training_pipeline_config.data_ingestion import *
 from constant.training_pipeline_config.data_validation import *
 from constant.training_pipeline_config.data_transformation import *
+from constant.training_pipeline_config.model_trainer import *
 from logger import logger
 from exception import InsuranceException
 import sys
@@ -116,3 +117,21 @@ class InsuranceConfig:
             return data_transformation_config
         except Exception as e:
             raise InsuranceConfig(e, sys)
+
+
+    def get_model_trainer_config(self) -> ModelTrainerConfig:
+        try:
+            model_trainer_dir = os.path.join(self.pipeline_config.artifact_dir,
+                                             MODEL_TRAINER_DIR, self.timestamp)
+            trained_model_file_path = os.path.join(
+                model_trainer_dir, MODEL_TRAINER_TRAINED_MODEL_DIR, MODEL_TRAINER_MODEL_NAME
+            )
+            
+            model_trainer_config = ModelTrainerConfig(base_accuracy=MODEL_TRAINER_BASE_ACCURACY,
+                                                      trained_model_file_path=trained_model_file_path,
+                                                      metric_list=MODEL_TRAINER_MODEL_METRIC_NAMES
+                                                      )
+            logger.info(f"Model trainer config: {model_trainer_config}")
+            return model_trainer_config
+        except Exception as e:
+            raise InsuranceException(e, sys)

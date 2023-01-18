@@ -13,10 +13,10 @@ secret_access_key = AWS_SECRET_ACCESS_KEY_ENV_KEY
 #
 # spark_session=spark
 #
+#spark_session=SparkSession.builder.appName('Insurace_Premium').getOrCreate()
 
-
-spark_session = SparkSession.builder.master('local[*]').appName('insurance_premium') \
-    .config("spark.executor.instances", "1") \
+spark_session = SparkSession.builder.appName('insurance_premium') \
+    .config("spark.executor.instances", "4") \
     .config("spark.executor.memory", "6g") \
     .config("spark.driver.memory", "6g") \
     .config("spark.executor.memoryOverhead", "8g") \

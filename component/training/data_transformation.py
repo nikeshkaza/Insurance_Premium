@@ -3,12 +3,13 @@ import sys
 from collections import namedtuple
 from typing import List, Dict
 
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame,SQLContext
 from pyspark.sql.functions import col
 from pyspark.ml.feature import StandardScaler, VectorAssembler, OneHotEncoder, StringIndexer, Imputer
+from pyspark.sql.types import TimestampType, StringType, FloatType, StructType, StructField, IntegerType
 from pyspark.ml.pipeline import Pipeline
 
-from pyspark.sql import SparkSession
+from config.spark_manager import spark_session
 from entity.artifact_entity import DataTransformationArtifact,DataValidationArtifact
 from entity.config_entity import DataTransformationConfig
 from entity.schema import InsuranceDataSchema
@@ -20,7 +21,7 @@ from pyspark.sql.functions import lit,array
 """
 Start spark session
 """
-spark_session=SparkSession.builder.appName('Insurace_Premium').getOrCreate()
+#spark_session=SparkSession.builder.appName('Insurace_Premium').getOrCreate()
 
 
 class DataTransformation():
@@ -42,7 +43,25 @@ class DataTransformation():
             file_path = self.data_val_artifact.accepted_file_path
             dataframe: DataFrame = spark_session.read.parquet(file_path)
             dataframe.printSchema()
+            dataframe=dataframe.withColumn("age",dataframe["age"].cast(IntegerType()))
+            dataframe=dataframe.withColumn("bmi",dataframe["bmi"].cast(FloatType()))    
+            dataframe=dataframe.withColumn("children",dataframe["children"].cast(IntegerType()))  
+            dataframe=dataframe.withColumn("expenses",dataframe["expenses"].cast(FloatType()))            
+            dataframe.printSchema()
+            dataframe.show()
             return dataframe
+        except Exception as e:
+            raise InsuranceException(e, sys)
+
+    def read_data_sql(self) -> DataFrame:
+
+        try:
+           file_path = self.data_val_artifact.accepted_file_path 
+           sqlContext= SQLContext(spark_session)
+           df = sqlContext.read.format("parquet").load(file_path,schema=self.schema.dataframe_schema)
+           #df=sqlContext.read.parquet(file_path)
+           df.printSchema()
+           df.show()
         except Exception as e:
             raise InsuranceException(e, sys)
 
@@ -55,12 +74,19 @@ class DataTransformation():
             string_indexer= StringIndexer(inputCol=catcols,outputCol=string_indexer_col)
             stages.append(string_indexer)
 
-        one_hot_encoder=OneHotEncoder(inputCols=self.schema.string_index_output,
+        one_hot_encoder=OneHotEncoder(inputCols=self.schema.string_index_output ,
                                         outputCols=self.schema.tf_one_hot_encoding_features)
 
         stages.append(one_hot_encoder)
 
+        vector_assembler= VectorAssembler(inputCols=self.schema.vector_assembler_input,
+                                            outputCol=self.schema.vector_assembler_output)
+
+        stages.append(vector_assembler)
+
         pipeline=Pipeline(stages=stages)
+        logger.info(f"Data transformation pipeline: [{pipeline}]")
+        print(pipeline.stages)
 
         return pipeline
 
@@ -87,18 +113,17 @@ class DataTransformation():
 
             transformed_pipeline = pipeline.fit(train_dataframe)
 
-            print(transformed_pipeline)
 
             # selecting required columns
             
 
             transformed_trained_dataframe = transformed_pipeline.transform(train_dataframe)
+            transformed_trained_dataframe = transformed_trained_dataframe.select(self.schema.final_required_columns)
             transformed_trained_dataframe.show()
-            print(transformed_trained_dataframe)
-            transformed_trained_dataframe = transformed_trained_dataframe.select(self.schema.required_columns)
 
             transformed_test_dataframe = transformed_pipeline.transform(test_dataframe)
-            transformed_test_dataframe = transformed_test_dataframe.select(self.schema.required_columns)
+            transformed_test_dataframe = transformed_test_dataframe.select(self.schema.final_required_columns)
+            transformed_test_dataframe.show()
 
             export_pipeline_file_path = self.data_tf_config.export_pipeline_dir
 
