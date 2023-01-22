@@ -4,7 +4,12 @@ from component.training.data_ingestion import DataIngestion
 from component.training.data_validation import DataValidation
 from component.training.data_transformation import DataTransformation
 from component.training.model_trainer import ModelTrainer
-from entity.artifact_entity import DataIngestionArtifact,DataValidationArtifact,DataTransformationArtifact,ModelTrainerArtifact
+from component.training.model_evaluation import ModelEvaluation
+from entity.artifact_entity import DataIngestionArtifact,DataValidationArtifact,DataTransformationArtifact,ModelTrainerArtifact,ModelEvaluationArtifact
+from constant.s3bucket import TRAINING_BUCKET_NAME,TRAINING_LOG_NAME
+from constant import TIMESTAMP
+from logger import LOG_FILE_PATH,LOG_DIR
+from cloud_storage.s3_syncer import S3Sync
 import sys
 
 
@@ -12,6 +17,7 @@ class TrainingPipeline:
 
     def __init__(self, insurance_config: InsuranceConfig):
         self.insurance_config: InsuranceConfig = insurance_config
+        self.s3_sync=S3Sync()
 
     def start_data_ingestion(self) -> DataIngestionArtifact:
         try:
@@ -56,12 +62,40 @@ class TrainingPipeline:
         except Exception as e:
             raise InsuranceException(e, sys)
 
+    def start_model_evaluation(self, data_validation_artifact, model_trainer_artifact) -> ModelEvaluationArtifact:
+        try:
+            model_eval_config = self.insurance_config.get_model_evaluation_config()
+            model_eval = ModelEvaluation(data_validation_artifact=data_validation_artifact,
+                                         model_trainer_artifact=model_trainer_artifact,
+                                         model_eval_config=model_eval_config
+                                         )
+            return model_eval.initiate_model_evaluation()
+        except Exception as e:
+            raise InsuranceException(e, sys)
+
+
+    def sync_artifact_dir_to_s3(self):
+        try:
+            aws_buket_url = f"s3://{TRAINING_BUCKET_NAME}/artifact/{TIMESTAMP}"
+            aws_bucket_log_url = f"s3://{TRAINING_LOG_NAME}/logs/{TIMESTAMP}"
+            log_path=LOG_DIR
+            self.s3_sync.sync_folder_to_s3(folder = self.insurance_config.pipeline_config.artifact_dir,aws_buket_url=aws_buket_url)
+            self.s3_sync.sync_folder_to_s3(folder=log_path,aws_buket_url=aws_bucket_log_url)
+        except Exception as e:
+            raise InsuranceException(e,sys)
+
     def start(self):
         try:
             data_ingestion_artifact = self.start_data_ingestion()
             data_validation_artifact = self.start_data_validation(data_ingestion_artifact=data_ingestion_artifact)
             data_transfomation_artifact = self.start_data_transformation(data_validation_artifact=data_validation_artifact)
-            model_trainer=self.start_model_trainer(data_transformation_artifact=data_transfomation_artifact)
+            model_trainer_artifact=self.start_model_trainer(data_transformation_artifact=data_transfomation_artifact)
+            model_eval_artifact = self.start_model_evaluation(data_validation_artifact=data_validation_artifact,
+                                                              model_trainer_artifact=model_trainer_artifact
+                                                              )
+
+            
+            #self.sync_artifact_dir_to_s3()
             
         except Exception as e:
             raise InsuranceException(e, sys)

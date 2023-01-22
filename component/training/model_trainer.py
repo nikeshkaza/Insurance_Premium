@@ -14,7 +14,7 @@ from entity.config_entity import ModelTrainerConfig
 from pyspark.sql import DataFrame
 from pyspark.ml.feature import IndexToString
 from pyspark.ml.classification import RandomForestClassifier
-from pyspark.ml.regression import RandomForestRegressor
+from pyspark.ml.regression import RandomForestRegressor,DecisionTreeRegressor,LinearRegression,GBTRegressor
 from utils import get_score
 
 
@@ -62,14 +62,14 @@ class ModelTrainer:
         try:
             stages = []
             logger.info("Creating Random Forest Classifier class.")
-            random_forest_clf = RandomForestRegressor(labelCol=self.schema.target_indexed_label,
+            gbt_regresser = GBTRegressor(labelCol=self.schema.target_indexed_label,
                                                        featuresCol=self.schema.vector_assembler_output)
 
             #logger.info("Creating Label generator")
             #label_generator = IndexToString(inputCol=self.schema.prediction_column_name,
             #                                outputCol=f"{self.schema.prediction_column_name}_{self.schema.target_column}",
             #                                labels=label_indexer_model.labels)
-            stages.append(random_forest_clf)
+            stages.append(gbt_regresser)
             #stages.append(label_generator)
             pipeline = Pipeline(stages=stages)
             return pipeline
@@ -92,8 +92,7 @@ class ModelTrainer:
             os.makedirs(os.path.dirname(trained_model_file_path), exist_ok=True)
 
             ref_artifact = PartialModelTrainerRefArtifact(
-                trained_model_file_path=trained_model_file_path,
-                label_indexer_model_file_path=self.model_trainer_config.label_indexer_model_dir)
+                trained_model_file_path=trained_model_file_path)
 
             logger.info(f"Model trainer reference artifact: {ref_artifact}")
             return ref_artifact
@@ -127,16 +126,16 @@ class ModelTrainer:
 
             print(f"number of row in training: {train_dataframe_pred.count()}")
             scores = self.get_scores(dataframe=train_dataframe_pred,metric_names=self.model_trainer_config.metric_list)
-            train_metric_artifact = PartialModelTrainerMetricArtifact(f1_score=scores[0][1],
-                                                                      precision_score=scores[1][1],
-                                                                      recall_score=scores[2][1])
+            train_metric_artifact = PartialModelTrainerMetricArtifact(mse=scores[0][1],
+                                                                      rmse=scores[1][1],
+                                                                      r2=scores[2][1])
             logger.info(f"Model trainer train metric: {train_metric_artifact}")
 
-            print(f"number of row in training: {test_dataframe_pred.count()}")
+            print(f"number of row in test: {test_dataframe_pred.count()}")
             scores = self.get_scores(dataframe=test_dataframe_pred,metric_names=self.model_trainer_config.metric_list)
-            test_metric_artifact = PartialModelTrainerMetricArtifact(f1_score=scores[0][1],
-                                                                     precision_score=scores[1][1],
-                                                                     recall_score=scores[2][1])
+            test_metric_artifact = PartialModelTrainerMetricArtifact(mse=scores[0][1],
+                                                                     rmse=scores[1][1],
+                                                                     r2=scores[2][1])
 
             logger.info(f"Model trainer test metric: {test_metric_artifact}")
             ref_artifact = self.export_trained_model(model=trained_model)

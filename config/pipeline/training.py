@@ -1,15 +1,18 @@
 from time import strftime
-from entity.config_entity import DataIngestionConfig,TrainingPipelineConfig,DataValidationConfig,DataTransformationConfig,ModelTrainerConfig
+from entity.config_entity import DataIngestionConfig,TrainingPipelineConfig,DataValidationConfig,DataTransformationConfig,ModelTrainerConfig,ModelEvaluationConfig
 from constant.training_pipeline_config import *
 from constant.training_pipeline_config.data_ingestion import *
 from constant.training_pipeline_config.data_validation import *
 from constant.training_pipeline_config.data_transformation import *
 from constant.training_pipeline_config.model_trainer import *
+from constant.training_pipeline_config.model_evaluation import *
+from constant.model import *
 from logger import logger
 from exception import InsuranceException
 import sys
 from datetime import datetime
 from constant import TIMESTAMP
+
 
 class InsuranceConfig:
     def __init__(self, pipeline_name=PIPELINE_NAME, timestamp=TIMESTAMP):
@@ -116,7 +119,7 @@ class InsuranceConfig:
             logger.info(f"Data transformation config: {data_transformation_config}")
             return data_transformation_config
         except Exception as e:
-            raise InsuranceConfig(e, sys)
+            raise InsuranceException(e, sys)
 
 
     def get_model_trainer_config(self) -> ModelTrainerConfig:
@@ -133,5 +136,28 @@ class InsuranceConfig:
                                                       )
             logger.info(f"Model trainer config: {model_trainer_config}")
             return model_trainer_config
+        except Exception as e:
+            raise InsuranceException(e, sys)
+
+    def get_model_evaluation_config(self) -> ModelEvaluationConfig:
+        try:
+            model_evaluation_dir = os.path.join(self.pipeline_config.artifact_dir,
+                                                MODEL_EVALUATION_DIR)
+
+            model_evaluation_report_file_path = os.path.join(
+                model_evaluation_dir, MODEL_EVALUATION_REPORT_DIR, MODEL_EVALUATION_REPORT_FILE_NAME
+            )
+
+            model_evaluation_config = ModelEvaluationConfig(
+                bucket_name=S3_MODEL_BUCKET_NAME,
+                model_dir=S3_MODEL_DIR_KEY,
+                model_evaluation_report_file_path=model_evaluation_report_file_path,
+                threshold=MODEL_EVALUATION_THRESHOLD_VALUE,
+                metric_list=MODEL_EVALUATION_METRIC_NAMES,
+
+            )
+            logger.info(f"Model evaluation config: [{model_evaluation_config}]")
+            return model_evaluation_config
+
         except Exception as e:
             raise InsuranceException(e, sys)

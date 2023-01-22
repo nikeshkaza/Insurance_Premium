@@ -1,0 +1,2 @@
+TRAINING_BUCKET_NAME="insurancepremiumartifact"
+TRAINING_LOG_NAME="insurancepremlogs"

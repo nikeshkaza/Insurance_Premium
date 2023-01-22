@@ -15,12 +15,11 @@ DataTransformationArtifact = namedtuple("DataTransformationArtifact",
                                          ])
 
 
-PartialModelTrainerRefArtifact = namedtuple("PartialModelTrainerRefArtifact", ["trained_model_file_path",
-                                                                               "label_indexer_model_file_path"
+PartialModelTrainerRefArtifact = namedtuple("PartialModelTrainerRefArtifact", ["trained_model_file_path"
                                                                                ])
 
 PartialModelTrainerMetricArtifact = namedtuple("PartialModelTrainerMetricArtifact", [
-    "f1_score", "precision_score", "recall_score"
+    "mse", "rmse", "r2"
 ])
 
 
@@ -52,6 +51,26 @@ class ModelTrainerArtifact:
             return response
         except Exception as e:
             raise e
+
+
+
+class ModelEvaluationArtifact:
+
+    def __init__(self, model_accepted, changed_accuracy, trained_model_path, best_model_path, active,*args,**kwargs):
+        self.model_accepted = model_accepted
+        self.changed_accuracy = changed_accuracy
+        self.trained_model_path = trained_model_path
+        self.best_model_path = best_model_path
+        self.active = active
+        self.created_timestamp = datetime.now()
+
+    def to_dict(self):
+        return  self.__dict__
+        
+
+    def __str__(self):
+        return str(self.to_dict())
+
 
 
 ModelPusherArtifact = namedtuple("ModelEvaluationArtifact", ["model_pushed_dir"])
