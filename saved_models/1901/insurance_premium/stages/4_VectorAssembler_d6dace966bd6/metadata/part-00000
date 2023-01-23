@@ -1,1 +1,0 @@
-{"class":"org.apache.spark.ml.feature.VectorAssembler","timestamp":1674455262483,"sparkVersion":"3.2.1","uid":"VectorAssembler_d6dace966bd6","paramMap":{"outputCol":"va_output_features","inputCols":["age","bmi","children","tf_sex","tf_smoker","tf_region"]},"defaultParamMap":{"outputCol":"VectorAssembler_87d7cd8c9d53__output","handleInvalid":"error"}}

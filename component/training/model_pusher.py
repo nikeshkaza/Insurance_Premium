@@ -1,6 +1,7 @@
 from statistics import mode
 from exception import InsuranceException
 import sys
+from constant.model import MODEL_SAVED_DIR
 from logger import logger,LOG_DIR
 from entity.config_entity import ModelPusherConfig
 from entity.artifact_entity import ModelPusherArtifact, ModelTrainerArtifact
@@ -41,10 +42,14 @@ class ModelPusher:
             log_path=LOG_DIR
             self.s3_sync.sync_folder_to_s3(folder = PIPELINE_ARTIFACT_DIR,aws_buket_url=aws_buket_url)
             self.s3_sync.sync_folder_to_s3(folder=log_path,aws_buket_url=aws_bucket_log_url)
+
+            # Removing all unwanted directories
             if os.path.exists(PIPELINE_ARTIFACT_DIR):
                 shutil.rmtree(PIPELINE_ARTIFACT_DIR)
             if os.path.exists(log_path):
                 shutil.rmtree(log_path)
+            if os.path.exists(MODEL_SAVED_DIR):
+                shutil.rmtree(MODEL_SAVED_DIR)
         except Exception as e:
             raise InsuranceException(e,sys)
 

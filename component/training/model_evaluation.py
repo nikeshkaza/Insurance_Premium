@@ -3,7 +3,7 @@ from entity.config_entity import ModelEvaluationConfig
 from entity.schema import InsuranceDataSchema
 from exception import InsuranceException
 from logger import logger
-import sys
+import sys,shutil,os
 from component.training.data_transformation import DataTransformation
 from pyspark.sql import DataFrame
 from pyspark.ml.feature import StringIndexerModel
@@ -118,6 +118,7 @@ class ModelEvaluation:
 
             logger.info(f"Model evaluation artifact: {model_evaluation_artifact}")
             self.model_eval_artifact_data.save_eval_artifact(model_eval_artifact=model_evaluation_artifact)
+         
             return model_evaluation_artifact
         except Exception as e:
             raise InsuranceException(e, sys)
