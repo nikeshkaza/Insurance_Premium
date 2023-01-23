@@ -1,0 +1,1 @@
+{"class":"org.apache.spark.ml.feature.StringIndexerModel","timestamp":1674469491079,"sparkVersion":"3.2.1","uid":"StringIndexer_2560c0c06019","paramMap":{"outputCol":"si_smoker","inputCol":"smoker"},"defaultParamMap":{"stringOrderType":"frequencyDesc","outputCol":"StringIndexerModel_3d8f91fef8d6__output","handleInvalid":"error"}}

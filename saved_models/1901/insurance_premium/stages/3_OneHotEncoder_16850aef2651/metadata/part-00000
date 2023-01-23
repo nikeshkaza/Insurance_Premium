@@ -1,0 +1,1 @@
+{"class":"org.apache.spark.ml.feature.OneHotEncoderModel","timestamp":1674469750649,"sparkVersion":"3.2.1","uid":"OneHotEncoder_16850aef2651","paramMap":{"outputCols":["tf_sex","tf_smoker","tf_region"],"inputCols":["si_sex","si_smoker","si_region"]},"defaultParamMap":{"dropLast":true,"outputCol":"OneHotEncoderModel_8f8ee24a19ae__output","handleInvalid":"error"}}

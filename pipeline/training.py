@@ -5,12 +5,13 @@ from component.training.data_validation import DataValidation
 from component.training.data_transformation import DataTransformation
 from component.training.model_trainer import ModelTrainer
 from component.training.model_evaluation import ModelEvaluation
+from component.training.model_pusher import ModelPusher
 from entity.artifact_entity import DataIngestionArtifact,DataValidationArtifact,DataTransformationArtifact,ModelTrainerArtifact,ModelEvaluationArtifact
 from constant.s3bucket import TRAINING_BUCKET_NAME,TRAINING_LOG_NAME
 from constant import TIMESTAMP
 from logger import LOG_FILE_PATH,LOG_DIR
 from cloud_storage.s3_syncer import S3Sync
-import sys
+import sys,os
 
 
 class TrainingPipeline:
@@ -74,15 +75,21 @@ class TrainingPipeline:
             raise InsuranceException(e, sys)
 
 
-    def sync_artifact_dir_to_s3(self):
+    def start_model_pusher(self, model_trainer_artifact: ModelTrainerArtifact):
         try:
-            aws_buket_url = f"s3://{TRAINING_BUCKET_NAME}/artifact/{TIMESTAMP}"
-            aws_bucket_log_url = f"s3://{TRAINING_LOG_NAME}/logs/{TIMESTAMP}"
-            log_path=LOG_DIR
-            self.s3_sync.sync_folder_to_s3(folder = self.insurance_config.pipeline_config.artifact_dir,aws_buket_url=aws_buket_url)
-            self.s3_sync.sync_folder_to_s3(folder=log_path,aws_buket_url=aws_bucket_log_url)
+            model_pusher_config = self.insurance_config.get_model_pusher_config()
+            model_pusher = ModelPusher(model_trainer_artifact=model_trainer_artifact,
+                                       model_pusher_config=model_pusher_config
+                                       )
+            return model_pusher.initiate_model_pusher()
         except Exception as e:
-            raise InsuranceException(e,sys)
+            raise InsuranceException(e, sys)        
+
+
+    def sync_artifact_dir_to_s3(self):
+        
+
+        return 
 
     def start(self):
         try:
@@ -94,8 +101,7 @@ class TrainingPipeline:
                                                               model_trainer_artifact=model_trainer_artifact
                                                               )
 
-            
-            #self.sync_artifact_dir_to_s3()
+            self.start_model_pusher(model_trainer_artifact=model_trainer_artifact)
             
         except Exception as e:
             raise InsuranceException(e, sys)

@@ -4,13 +4,14 @@ from entity.schema import InsuranceDataSchema
 from exception import InsuranceException
 from logger import logger
 import sys
+from component.training.data_transformation import DataTransformation
 from pyspark.sql import DataFrame
 from pyspark.ml.feature import StringIndexerModel
 from pyspark.ml.pipeline import PipelineModel
 from config.spark_manager import spark_session
 from utils import get_score
 
-from pyspark.sql.types import StringType, FloatType, StructType, StructField
+from pyspark.sql.types import StringType, FloatType, StructType, StructField, IntegerType
 from entity.estimator import S3InsuranceEstimator
 from data_access.model_eval_artifact import ModelEvaluationArtifactData
 
@@ -50,30 +51,37 @@ class ModelEvaluation:
         try:
             file_path = self.data_validation_artifact.accepted_file_path
             dataframe: DataFrame = spark_session.read.parquet(file_path)
+            dataframe.printSchema()
+            dataframe=dataframe.withColumn("age",dataframe["age"].cast(IntegerType()))
+            dataframe=dataframe.withColumn("bmi",dataframe["bmi"].cast(FloatType()))    
+            dataframe=dataframe.withColumn("children",dataframe["children"].cast(IntegerType()))  
+            dataframe=dataframe.withColumn("expenses",dataframe["expenses"].cast(FloatType()))            
+            dataframe.printSchema()
+            dataframe.show()
             return dataframe
         except Exception as e:
-            # Raising an exception.
             raise InsuranceException(e, sys)
 
     def evaluate_trained_model(self) -> ModelEvaluationArtifact:
         is_model_accepted, is_active = False, False
         trained_model_file_path = self.model_trainer_artifact.model_trainer_ref_artifact.trained_model_file_path
-        label_indexer_model_path = self.model_trainer_artifact.model_trainer_ref_artifact.label_indexer_model_file_path
+        #label_indexer_model_path = self.model_trainer_artifact.model_trainer_ref_artifact.label_indexer_model_file_path
 
-        label_indexer_model = StringIndexerModel.load(label_indexer_model_path)
+        #label_indexer_model = StringIndexerModel.load(label_indexer_model_path)
         trained_model = PipelineModel.load(trained_model_file_path)
 
         dataframe: DataFrame = self.read_data()
-        dataframe = label_indexer_model.transform(dataframe)
+
+        #dataframe = label_indexer_model.transform(dataframe)
 
         best_model_path = self.s3_finance_estimator.get_latest_model_path()
         trained_model_dataframe = trained_model.transform(dataframe)
         best_model_dataframe = self.s3_finance_estimator.transform(dataframe)
 
-        trained_model_f1_score = get_score(dataframe=trained_model_dataframe, metric_name="f1",
+        trained_model_f1_score = get_score(dataframe=trained_model_dataframe, metric_name="r2",
                                            label_col=self.schema.target_indexed_label,
                                            prediction_col=self.schema.prediction_column_name)
-        best_model_f1_score = get_score(dataframe=best_model_dataframe, metric_name="f1",
+        best_model_f1_score = get_score(dataframe=best_model_dataframe, metric_name="r2",
                                         label_col=self.schema.target_indexed_label,
                                         prediction_col=self.schema.prediction_column_name)
 

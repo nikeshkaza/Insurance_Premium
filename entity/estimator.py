@@ -142,7 +142,7 @@ class S3Estimator(CloudEstimator):
 
         response = self.s3_client.list_buckets()
         # Output the bucket names
-        print('Existing buckets:')
+        print(f"Existing buckets: {response}")
         available_buckets = [bucket['Name'] for bucket in response['Buckets']]
         if bucket_name not in available_buckets:
             location = {'LocationConstraint': region_name}
@@ -261,6 +261,7 @@ class S3Estimator(CloudEstimator):
         save_model_path = self.__get_save_model_path(key=key)
         self.s3_client.upload_file(model_zip_file_path, self.bucket_name, save_model_path)
         shutil.rmtree(os.path.dirname(model_zip_file_path))
+    
 
     def is_model_available(self, key) -> bool:
         """

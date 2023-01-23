@@ -1,5 +1,6 @@
 from time import strftime
-from entity.config_entity import DataIngestionConfig,TrainingPipelineConfig,DataValidationConfig,DataTransformationConfig,ModelTrainerConfig,ModelEvaluationConfig
+from entity.config_entity import DataIngestionConfig,TrainingPipelineConfig,DataValidationConfig,\
+    DataTransformationConfig,ModelTrainerConfig,ModelEvaluationConfig, ModelPusherConfig
 from constant.training_pipeline_config import *
 from constant.training_pipeline_config.data_ingestion import *
 from constant.training_pipeline_config.data_validation import *
@@ -160,4 +161,16 @@ class InsuranceConfig:
             return model_evaluation_config
 
         except Exception as e:
+            raise InsuranceException(e, sys)
+
+
+    def get_model_pusher_config(self) -> ModelPusherConfig:
+        try:
+            model_pusher_config = ModelPusherConfig(
+                model_dir=S3_MODEL_DIR_KEY,
+                bucket_name=S3_MODEL_BUCKET_NAME
+            )
+            logger.info(f"Model pusher config: {model_pusher_config}")
+            return model_pusher_config
+        except  Exception as e:
             raise InsuranceException(e, sys)
